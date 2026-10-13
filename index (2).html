@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IWOS Mission Control</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#071018;--p:#0e1822;--p2:#12202c;--line:rgba(255,255,255,.08);--t:#eef6fb;--m:#91a6b6;--c:#58d6ff;--g:#48e59a;--y:#ffd15c;--r:#ff6262}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial;background:radial-gradient(circle at 10% 0,rgba(88,214,255,.07),transparent 26%),var(--bg);color:var(--t)}button,input,select{font:inherit}
+.top{position:sticky;top:0;z-index:4000;background:rgba(7,16,24,.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}.topin{max-width:1450px;margin:auto;padding:12px 18px 10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}.brand{font-weight:950;font-size:19px}.sub{font-size:11px;color:var(--m)}.sources{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}.src,.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:7px 9px;font-size:11px;font-weight:900;background:rgba(255,255,255,.025)}.dot{width:8px;height:8px;border-radius:50%;background:#60707e}.dot.on{background:var(--g);box-shadow:0 0 10px rgba(72,229,154,.6)}.dot.off{background:var(--r)}.dot.warn{background:var(--y)}
+.nav{max-width:1450px;margin:auto;padding:0 18px 10px;display:flex;gap:8px;overflow:auto}.nav button,.btn,.seg{border:1px solid var(--line);background:rgba(255,255,255,.035);color:var(--t);padding:9px 12px;border-radius:10px;font-weight:850;cursor:pointer}.nav button.active,.seg.active{color:var(--c);border-color:rgba(88,214,255,.28);background:rgba(88,214,255,.09)}
+.wrap{max-width:1450px;margin:auto;padding:16px 18px 36px}.view{display:none}.view.active{display:block}.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g5{grid-template-columns:repeat(5,minmax(0,1fr))}.main{grid-template-columns:minmax(0,1.65fr) minmax(340px,.85fr)}
+.card{background:linear-gradient(180deg,var(--p2),var(--p));border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.25);overflow:hidden}.pad{padding:14px}.head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}.title{font-size:13px;font-weight:950}.spacer{flex:1}.muted{font-size:11px;color:var(--m);line-height:1.45}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}input,select{background:#08131c;color:var(--t);border:1px solid var(--line);border-radius:10px;padding:9px 10px}button:disabled,select:disabled{opacity:.45;cursor:not-allowed}.metric{min-height:92px;padding:12px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.025)}.mk{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.07em;font-weight:800}.mv{margin-top:6px;font-size:25px;font-weight:950}.mv.sm{font-size:18px}.unit{font-size:11px;color:var(--m);margin-left:4px}.green{color:var(--g);border-color:rgba(72,229,154,.25);background:rgba(72,229,154,.07)}.yellow{color:var(--y);border-color:rgba(255,209,92,.25);background:rgba(255,209,92,.07)}.red{color:var(--r);border-color:rgba(255,98,98,.25);background:rgba(255,98,98,.07)}.cyan{color:var(--c);border-color:rgba(88,214,255,.25);background:rgba(88,214,255,.07)}
+#strategyMap,#radarMap{height:470px}
+.mapWeatherKey{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.wxKey{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--m)}
+.wxSwatch{width:11px;height:11px;border-radius:50%;display:inline-block}
+.wxCloud{background:rgba(220,228,235,.75);border:1px solid rgba(255,255,255,.55)}
+.wxRain{background:rgba(58,134,255,.85);border:1px solid rgba(145,195,255,.85)}.routes{display:grid;gap:9px}.route{border:1px solid var(--line);border-left:4px solid #657786;border-radius:12px;padding:11px;background:rgba(255,255,255,.025);cursor:pointer}.rTop{display:flex;gap:10px;align-items:center}.rName{font-weight:950}.score{font-size:25px;font-weight:1000;margin-left:auto}.miniGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:9px}.mini{padding:7px;border-radius:9px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}.miniK{font-size:9px;color:var(--m);text-transform:uppercase}.miniV{font-size:13px;font-weight:900;margin-top:2px}.sectorTrack{display:flex;gap:7px;overflow:auto}.sector{min-width:130px;padding:9px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025)}.chart{height:280px;padding:10px}.tele{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.driverHero{text-align:center;padding:28px}.driverRoute{font-size:34px;font-weight:1000;letter-spacing:-.03em;margin:8px}.alert{font-size:20px;font-weight:900;line-height:1.4;padding:15px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.025)}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left}th{color:var(--m);text-transform:uppercase;font-size:10px}.weatherPanel{display:none}.weatherPanel.active{display:block}.iframe{height:470px}iframe{width:100%;height:100%;border:0}.diag{padding:13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);margin-bottom:9px}
+@media(max-width:1100px){.main{grid-template-columns:1fr}.g5{grid-template-columns:repeat(3,1fr)}.tele{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.g5,.g4,.g3{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.tele{grid-template-columns:repeat(2,1fr)}#strategyMap,#radarMap,.iframe{height:360px}.sources{margin-left:0}.miniGrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="top"><div class="topin"><div><div class="brand">IWOS Mission Control</div><div class="sub">IoT Weather • Route Strategy • Solar Car Decision Support</div></div><div class="sources"><span class="src"><i id="wDot" class="dot warn"></i> WEATHER API <b id="wTxt">READY</b></span><span class="src"><i id="cDot" class="dot off"></i> CAMPUS STATION <b id="cTxt">OFFLINE</b></span><span class="src"><i id="sDot" class="dot on"></i> SIMULATION <b id="sTxt">ACTIVE</b></span></div></div><div class="nav"><button class="active" data-view="strategy">Strategy</button><button data-view="weather">Weather</button><button data-view="campus">Campus Station</button><button data-view="driver">Driver</button></div></div>
+<div class="wrap">
+<section id="strategy" class="view active">
+<div class="card pad" style="margin-bottom:12px">
+<div class="controls">
+  <div>
+    <div class="title">Strategy Data Source</div>
+    <div class="muted">Switch between controlled simulation, real Open-Meteo route forecasts, or API + campus sensor validation.</div>
+  </div>
+  <div class="spacer"></div>
+  <select id="strategySource">
+    <option value="simulation">Simulation</option>
+    <option value="live">Live Weather API</option>
+    <option value="hybrid">Hybrid — API + Campus Station</option>
+  </select>
+  <span id="strategySourceStatus" class="pill cyan">SIMULATION MODE</span>
+</div>
+<div class="controls" style="margin-top:12px">
+  <div>
+    <div class="title">120-Minute Strategy Engine</div>
+    <div class="muted">Evaluates all three routes every 5 minutes from T + 0 to T + 120.</div>
+  </div>
+  <div class="spacer"></div>
+  <select id="scenario">
+    <option value="mixed">Mixed Conditions</option>
+    <option value="clear">Clear Day</option>
+    <option value="rain">Rain Threat</option>
+    <option value="wind">High Wind</option>
+    <option value="storm">Storm Cells</option>
+  </select>
+  <button class="btn" id="simulate">Generate New 120-Min Scenario</button>
+  <button class="btn" id="autoSim">Start Live Simulation</button>
+</div>
+<div class="controls" style="margin-top:12px">
+  <span class="muted">Strategy time</span>
+  <input id="timeline" type="range" min="0" max="120" step="5" value="0" style="min-width:250px">
+  <span id="timeText" class="pill cyan">T + 0 min</span>
+</div>
+<div class="controls" style="margin-top:10px">
+  <span class="pill green">120-min winner: <b id="overallLeader">—</b></span>
+  <span class="pill cyan">Current 5-min leader: <b id="instantLeader">—</b></span>
+  <span class="muted">The green/yellow/red ranking uses the complete 120-minute window.</span>
+</div>
+</div>
+<div class="grid g5" style="margin-bottom:12px"><div class="metric"><div class="mk">120-Min Recommended Route</div><div id="bestRoute" class="mv sm">—</div></div><div class="metric"><div class="mk">120-Min Avg Score</div><div class="mv"><span id="bestScore">—</span><span class="unit">/100</span></div></div><div class="metric"><div class="mk">120-Min Confidence</div><div class="mv"><span id="confidence">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Avg Battery at JHB</div><div class="mv"><span id="batteryFinish">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Strategy</div><div id="mode" class="mv sm">—</div></div></div>
+<div class="grid main"><div class="card"><div class="head"><div><div class="title">Route Strategy Map</div><div class="muted">Three starting points, one Johannesburg destination. Radar-style rain and cloud cover move across the routes as the T+0 → T+120 timeline advances.</div></div><div class="spacer"></div><div class="mapWeatherKey"><span class="wxKey"><i class="wxSwatch wxRain"></i>Radar Rain</span><span class="wxKey"><i class="wxSwatch wxCloud"></i>Cloud Cover</span><select id="strategyWeatherLayer"><option value="all">Rain + Clouds</option><option value="rain">Rain Only</option><option value="cloud">Clouds Only</option><option value="off">Weather Off</option></select><span id="strategyWeatherStatus" class="pill cyan">SIM WEATHER</span></div><span class="pill green">Green = Recommended</span><span class="pill yellow">Yellow = Alternative</span><span class="pill red">Red = Avoid</span></div><div id="strategyMap"></div></div><div class="card"><div class="head"><div><div class="title">Route Ranking</div><div class="muted">120-minute aggregate of weather + ETA + projected energy.</div></div></div><div class="pad"><div id="routeList" class="routes"></div></div></div></div>
+<div class="grid g2" style="margin-top:12px"><div class="card"><div class="head"><div><div class="title">Why This Route?</div><div class="muted">Human-readable strategy explanation.</div></div></div><div class="pad"><div id="explain" style="font-size:13px;line-height:1.6">Waiting…</div><div class="title" style="margin:14px 0 8px">Weather Along Recommended Route</div><div id="sectors" class="sectorTrack"></div></div></div><div class="card"><div class="head"><div class="title">Route Comparison</div></div><div class="chart"><canvas id="routeChart"></canvas></div></div></div>
+<div class="card" style="margin-top:12px"><div class="head"><div><div class="title">Live Vehicle Telemetry</div><div class="muted">Simulated vehicle telemetry for the concept demonstration.</div></div><div class="spacer"></div><span class="pill cyan">SIMULATION</span></div><div class="pad tele"><div class="metric"><div class="mk">Speed</div><div class="mv"><span id="tSpeed">—</span><span class="unit">km/h</span></div></div><div class="metric"><div class="mk">Battery</div><div class="mv"><span id="tBatt">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Solar Input</div><div class="mv"><span id="tSolar">—</span><span class="unit">W</span></div></div><div class="metric"><div class="mk">Power Draw</div><div class="mv"><span id="tPower">—</span><span class="unit">kW</span></div></div><div class="metric"><div class="mk">Energy Used</div><div class="mv"><span id="tUsed">—</span><span class="unit">kWh</span></div></div><div class="metric"><div class="mk">Remaining</div><div class="mv"><span id="tRemain">—</span><span class="unit">km</span></div></div></div></div>
+<div class="grid g2" style="margin-top:12px"><div class="card"><div class="head"><div class="title">Battery Projection</div></div><div class="chart"><canvas id="batteryChart"></canvas></div></div><div class="card"><div class="head"><div class="title">Weather Risk Projection</div></div><div class="chart"><canvas id="riskChart"></canvas></div></div></div>
+</section>
+<section id="weather" class="view"><div class="card pad" style="margin-bottom:12px"><div class="controls"><div><div class="title">External Weather Intelligence</div><div class="muted">Open-Meteo current conditions and forecast.</div></div><div class="spacer"></div><input id="lat" placeholder="Latitude" style="width:130px"><input id="lon" placeholder="Longitude" style="width:130px"><button class="btn" id="useCoords">Use Coordinates</button><button class="btn" id="gps">Use GPS</button><button class="btn" id="refreshWx">Refresh</button></div></div>
+<div class="grid g4" style="margin-bottom:12px"><div class="metric"><div class="mk">Solar Irradiance</div><div class="mv"><span id="wxSolar">—</span><span class="unit">W/m²</span></div></div><div class="metric"><div class="mk">Temperature</div><div class="mv"><span id="wxTemp">—</span><span class="unit">°C</span></div></div><div class="metric"><div class="mk">Rain Chance</div><div class="mv"><span id="wxRain">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Precipitation</div><div class="mv"><span id="wxPrecip">—</span><span class="unit">mm</span></div></div><div class="metric"><div class="mk">Wind</div><div class="mv"><span id="wxWind">—</span><span class="unit">km/h</span></div></div><div class="metric"><div class="mk">Wind Direction</div><div class="mv sm" id="wxDir">—</div></div><div class="metric"><div class="mk">Cloud Cover</div><div class="mv"><span id="wxCloud">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Pressure</div><div class="mv"><span id="wxPressure">—</span><span class="unit">hPa</span></div></div></div>
+<div class="grid main"><div class="card"><div class="head"><div><div class="title">Weather Visual</div><div class="muted">Radar, clouds, satellite and wind context.</div></div><div class="spacer"></div><button class="seg active" id="radarTab">Radar</button><button class="seg" id="windyTab">Clouds / Satellite</button><select id="windyMode"><option value="clouds">Clouds</option><option value="satellite">Satellite</option><option value="wind">Wind</option><option value="rain">Rain</option></select></div><div id="radarPanel" class="weatherPanel active"><div id="radarMap"></div><div class="pad controls"><button class="btn" id="playRadar">Play</button><button class="btn" id="pauseRadar">Pause</button><button class="btn" id="reloadRadar">Reload</button><div class="spacer"></div><span id="radarStatus" class="muted">Ready.</span></div></div><div id="windyPanel" class="weatherPanel"><div class="iframe"><iframe id="windyFrame"></iframe></div></div></div><div class="card"><div class="head"><div><div class="title">Next 6 Hours</div><div class="muted">Short-term operational forecast.</div></div></div><div class="pad"><table><thead><tr><th>Time</th><th>Rain</th><th>Wind</th><th>Cloud</th><th>Precip</th></tr></thead><tbody id="forecast"><tr><td colspan="5">Loading…</td></tr></tbody></table></div></div></div>
+<div class="card" style="margin-top:12px"><div class="head"><div><div class="title">API vs Campus Validation</div><div class="muted">Compare forecast data with measured campus data.</div></div></div><div class="pad grid g4"><div class="metric"><div class="mk">API Temp</div><div id="cmpApi" class="mv sm">—</div></div><div class="metric"><div class="mk">Campus Temp</div><div id="cmpCampus" class="mv sm">—</div></div><div class="metric"><div class="mk">Difference</div><div id="cmpDiff" class="mv sm">—</div></div><div class="metric"><div class="mk">Validation</div><div id="cmpStatus" class="mv sm">Waiting</div></div></div></div></section>
+<section id="campus" class="view"><div class="grid main"><div><div class="card"><div class="head"><div><div class="title">Campus IoT Weather Station</div><div class="muted">Physical sensor readings from the Pi / ESP32 system.</div></div><div class="spacer"></div><span id="campPill" class="pill red">OFFLINE</span></div><div class="pad"><div class="controls" style="margin-bottom:12px"><input id="backend" value="https://iwos-backend.onrender.com" style="min-width:280px"><button id="saveBackend" class="btn">Save Backend</button><button id="refreshCampus" class="btn">Refresh Station</button></div><div class="grid g4"><div class="metric"><div class="mk">Temperature</div><div class="mv"><span id="cTemp">—</span><span class="unit">°C</span></div></div><div class="metric"><div class="mk">Humidity</div><div class="mv"><span id="cHum">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Pressure</div><div class="mv"><span id="cPressure">—</span><span class="unit">hPa</span></div></div><div class="metric"><div class="mk">Solar / Light</div><div class="mv"><span id="cLight">—</span><span id="cLightUnit" class="unit">lux</span></div></div><div class="metric"><div class="mk">Wind Speed</div><div class="mv"><span id="cWind">—</span><span class="unit">km/h</span></div></div><div class="metric"><div class="mk">Wind Direction</div><div id="cDir" class="mv sm">—</div></div><div class="metric"><div class="mk">Rain Sensor</div><div id="cRain" class="mv sm">—</div></div><div class="metric"><div class="mk">Location</div><div id="cLoc" class="mv sm">—</div></div></div><div class="grid g4" style="margin-top:12px"><div class="metric"><div class="mk">Device ID</div><div id="cDevice" class="mv sm">—</div></div><div class="metric"><div class="mk">Last Reading</div><div id="cLast" class="mv sm">—</div></div><div class="metric"><div class="mk">Data Age</div><div id="cAge" class="mv sm">—</div></div><div class="metric"><div class="mk">Connection</div><div id="cConn" class="mv sm">OFFLINE</div></div></div></div></div><div class="grid g2" style="margin-top:12px"><div class="card"><div class="head"><div class="title">Campus Temperature History</div></div><div class="chart"><canvas id="campTempChart"></canvas></div></div><div class="card"><div class="head"><div class="title">Campus Wind History</div></div><div class="chart"><canvas id="campWindChart"></canvas></div></div></div></div><div class="card"><div class="head"><div><div class="title">Station Diagnostics</div><div class="muted">Physical source health and integration checks.</div></div></div><div class="pad"><div class="diag"><div class="mk">Expected Data Flow</div><div style="margin-top:7px;line-height:1.6">Sensors → Raspberry Pi / ESP32 → Node API → MongoDB Atlas → IWOS Dashboard</div></div><div class="diag"><div class="mk">Latest Endpoint</div><div id="latestEndpoint" style="margin-top:7px;word-break:break-all">—</div></div><div class="diag"><div class="mk">History Endpoint</div><div id="historyEndpoint" style="margin-top:7px;word-break:break-all">—</div></div><div class="diag"><div class="mk">Sensor Completeness</div><div id="complete" style="font-size:30px;font-weight:950;margin-top:6px">0%</div></div><div class="diag"><div class="mk">Automatic Polling</div><div style="margin-top:7px">Every 10 seconds while the dashboard is open.</div></div><div class="diag"><div class="mk">Fallback Behaviour</div><div style="margin-top:7px;line-height:1.55">If the campus station is offline, Weather API and Simulation Mode continue working. Physical sensor data is kept separate from API and simulated data.</div></div></div></div></div></section>
+<section id="driver" class="view"><div class="card driverHero"><div class="mk">Recommended Route</div><div id="dRoute" class="driverRoute">—</div><span id="dMode" class="pill green">—</span></div><div class="grid g4" style="margin-top:12px"><div class="metric"><div class="mk">Rain Risk Ahead</div><div class="mv"><span id="dRain">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Wind Ahead</div><div class="mv"><span id="dWind">—</span><span class="unit">km/h</span></div></div><div class="metric"><div class="mk">Solar Condition</div><div id="dSolar" class="mv sm">—</div></div><div class="metric"><div class="mk">Distance Remaining</div><div class="mv"><span id="dRemain">—</span><span class="unit">km</span></div></div></div><div class="card pad" style="margin-top:12px"><div class="mk">Next Driver Instruction</div><div id="dMessage" class="alert" style="margin-top:8px">Waiting…</div></div><div class="grid g3" style="margin-top:12px"><div class="metric"><div class="mk">Battery</div><div class="mv"><span id="dBatt">—</span><span class="unit">%</span></div></div><div class="metric"><div class="mk">Current Speed</div><div class="mv"><span id="dSpeed">—</span><span class="unit">km/h</span></div></div><div class="metric"><div class="mk">Confidence</div><div class="mv"><span id="dConf">—</span><span class="unit">%</span></div></div></div><div class="card pad" style="margin-top:12px"><div class="muted">Driver mode intentionally removes graphs and detailed analytics. It only shows the information needed for a fast operational decision.</div></div></section>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>Math.random()*(b-a)+a,r0=v=>v==null||isNaN(Number(v))?'—':Math.round(Number(v)),r1=v=>v==null||isNaN(Number(v))?'—':(Math.round(Number(v)*10)/10).toFixed(1);
+const A={map:null,radar:null,radarLayer:null,frames:[],host:null,ri:0,rt:null,routeLayers:{},markers:[],weatherCells:[],strategyWeatherOverlay:null,strategyRadarLayer:null,routeChart:null,battChart:null,riskChart:null,cTempChart:null,cWindChart:null,simTimer:null,simMinute:0,simData:[],overallRanked:[],best:null,instantBest:null,strategySource:'simulation',strategyBusy:false,hybridApplied:false,wx:{lat:-26.2041,lon:28.0473,last:null},camp:{latest:null,history:[],online:false},backend:'https://iwos-backend.onrender.com'};
+const dest={lat:-26.2041,lon:28.0473};
+const routes=[{id:'A',name:'Route A',startName:'Pretoria',distance:72,start:[-25.7479,28.2293],points:[[-25.7479,28.2293],[-25.84,28.18],[-25.95,28.12],[-26.07,28.08],[-26.2041,28.0473]]},{id:'B',name:'Route B',startName:'Rustenburg',distance:126,start:[-25.6676,27.2421],points:[[-25.6676,27.2421],[-25.82,27.42],[-25.96,27.63],[-26.09,27.84],[-26.2041,28.0473]]},{id:'C',name:'Route C',startName:'Vereeniging',distance:74,start:[-26.6731,27.9261],points:[[-26.6731,27.9261],[-26.55,27.96],[-26.43,28.00],[-26.31,28.03],[-26.2041,28.0473]]}];
+function windLabel(d){if(d==null||!isFinite(Number(d)))return'—';return['N','NE','E','SE','S','SW','W','NW'][Math.round(Number(d)/45)%8]}
+function dot(id,s){$(id).className='dot '+s}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.view).classList.add('active');setTimeout(()=>{if(b.dataset.view==='strategy'){A.map.invalidateSize(true);setTimeout(()=>{const g=L.featureGroup(Object.values(A.routeLayers));A.map.fitBounds(g.getBounds(),{padding:[35,35],maxZoom:9})},80)}if(b.dataset.view==='weather')A.radar.invalidateSize()},120)});
+function initMap(){
+  A.map=L.map('strategyMap',{
+    zoomControl:true,
+    preferCanvas:true
+  });
+
+  // Weather cells sit below the coloured routes so the route remains easy to read.
+  A.map.createPane('strategyWeatherPane');
+  A.map.getPane('strategyWeatherPane').style.zIndex=350;
+  A.map.getPane('strategyWeatherPane').style.pointerEvents='none';
+
+  // Use standard OpenStreetMap tiles — no API key required.
+  L.tileLayer(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      maxZoom:19,
+      attribution:'&copy; OpenStreetMap'
+    }
+  ).addTo(A.map);
+
+  L.marker([dest.lat,dest.lon])
+    .addTo(A.map)
+    .bindPopup('<b>Johannesburg</b><br>Common destination');
+
+  routes.forEach(r=>{
+    L.marker(r.start)
+      .addTo(A.map)
+      .bindPopup(`<b>${r.startName}</b><br>${r.name} start`);
+
+    A.routeLayers[r.id]=L.polyline(
+      r.points,
+      {weight:8,opacity:.9,color:'#647786'}
+    ).addTo(A.map);
+  });
+
+  const routeGroup=L.featureGroup(Object.values(A.routeLayers));
+  A.map.fitBounds(routeGroup.getBounds(),{
+    padding:[35,35],
+    maxZoom:9
+  });
+
+  setTimeout(()=>{
+    A.map.invalidateSize(true);
+    A.map.fitBounds(routeGroup.getBounds(),{
+      padding:[35,35],
+      maxZoom:9
+    });
+  },250);
+}
+function ranges(s){if(s==='clear')return{solar:[760,1020],rain:[0,18],wind:[5,22],cloud:[0,28],temp:[23,34]};if(s==='rain')return{solar:[220,620],rain:[48,90],wind:[10,38],cloud:[58,100],temp:[16,27]};if(s==='wind')return{solar:[430,850],rain:[5,40],wind:[32,68],cloud:[18,70],temp:[18,31]};if(s==='storm')return{solar:[120,520],rain:[60,98],wind:[38,82],cloud:[70,100],temp:[14,25]};return{solar:[300,930],rain:[5,78],wind:[8,50],cloud:[10,92],temp:[17,33]}}
+function sector(base,i,r,bias,minute){
+  let drift=Math.sin((minute/120)*Math.PI*2+i*.7);
+  return{
+    name:`Sector ${i+1}`,
+    kmStart:Math.round((i/4)*r.distance),
+    kmEnd:Math.round(((i+1)/4)*r.distance),
+    solar:Math.round(clamp(rand(...base.solar)+drift*70+bias.solar,80,1100)),
+    rain:Math.round(clamp(rand(...base.rain)+drift*8+bias.rain,0,100)),
+    wind:Math.round(clamp(rand(...base.wind)+Math.abs(drift)*6+bias.wind,0,90)),
+    cloud:Math.round(clamp(rand(...base.cloud)+drift*10+bias.cloud,0,100)),
+    temp:Math.round(clamp(rand(...base.temp)+drift*1.2,8,45)*10)/10
+  }
+}
+
+function snapshotRoute(r,idx,base,minute){
+  let bias={
+    solar:idx===0?25:idx===1?-20:8,
+    rain:idx===0?-5:idx===1?8:2,
+    wind:idx===2?4:0,
+    cloud:idx===1?8:0
+  };
+
+  let snap={...r};
+  snap.sectors=[0,1,2,3].map(i=>sector(base,i,r,bias,minute));
+  let avg=k=>snap.sectors.reduce((s,x)=>s+x[k],0)/snap.sectors.length;
+  snap.w={solar:avg('solar'),rain:avg('rain'),wind:avg('wind'),cloud:avg('cloud'),temp:avg('temp')};
+
+  snap.energyStart=82;
+  snap.avgSpeed=clamp(78-snap.w.rain*.10-Math.max(0,snap.w.wind-25)*.11,52,88);
+  snap.eta=Math.round(snap.distance/snap.avgSpeed*60);
+  snap.drive=snap.distance*(.115+Math.max(0,snap.w.wind-20)*.0012+snap.w.rain*.00035);
+  snap.solarGain=snap.distance*(snap.w.solar/1000)*.026*(1-snap.w.cloud/220);
+  snap.weatherLoss=snap.distance*((snap.w.rain/100)*.012+Math.max(0,snap.w.wind-35)*.0015);
+  snap.net=snap.drive+snap.weatherLoss-snap.solarGain;
+  snap.finish=clamp(snap.energyStart-snap.net*2.15,5,100);
+
+  let score=
+    clamp(snap.w.solar/10,0,100)
+    - snap.w.rain*.28
+    - Math.max(0,snap.w.wind-12)*.28
+    - snap.w.cloud*.10
+    - Math.max(0,snap.distance-70)*.10
+    - Math.max(0,snap.eta-60)*.08
+    + (snap.finish-55)*.30;
+
+  snap.score=Math.round(clamp(score,0,100));
+  snap.mode=
+    snap.w.rain>=68||snap.w.wind>=52||snap.score<40
+      ?'CONSERVE'
+      :snap.score>=72&&snap.w.rain<28&&snap.w.wind<34
+        ?'ATTACK'
+        :'BALANCED';
+
+  return snap;
+}
+
+function finaliseStrategyFrames(){
+  let aggregate=routes.map(r=>{
+    const samples=A.simData.map(frame=>frame.routes.find(x=>x.id===r.id));
+    const avg=k=>samples.reduce((s,x)=>s+Number(x[k]||0),0)/samples.length;
+    const avgW=k=>samples.reduce((s,x)=>s+Number(x.w[k]||0),0)/samples.length;
+    const wins=A.simData.filter(frame=>frame.leader===r.id).length;
+
+    return{
+      ...r,
+      overallScore:Math.round(avg('score')),
+      overallFinish:avg('finish'),
+      overallEta:Math.round(avg('eta')),
+      overallSolarGain:avg('solarGain'),
+      overallDrive:avg('drive'),
+      overallNet:avg('net'),
+      overallW:{
+        solar:avgW('solar'),
+        rain:avgW('rain'),
+        wind:avgW('wind'),
+        cloud:avgW('cloud'),
+        temp:avgW('temp')
+      },
+      wins,
+      winRate:(wins/A.simData.length)*100
+    };
+  });
+
+  let ranked=[...aggregate].sort((a,b)=>b.overallScore-a.overallScore);
+  ranked.forEach((r,i)=>r.rank=i);
+
+  const gap=ranked[0].overallScore-ranked[1].overallScore;
+  ranked[0].conf=Math.round(clamp(55+gap*2.2+ranked[0].winRate*.28,58,97));
+  ranked[1].conf=Math.round(clamp(42+ranked[1].winRate*.22,38,78));
+  ranked[2].conf=Math.round(clamp(30+ranked[2].winRate*.15,28,62));
+
+  A.overallRanked=ranked;
+  showMinute();
+}
+
+function generateSimulation(){
+  const base=ranges($('scenario').value);
+  A.simData=[];
+  A.hybridApplied=false;
+
+  for(let minute=0;minute<=120;minute+=5){
+    let snaps=routes.map((r,idx)=>snapshotRoute(r,idx,base,minute));
+    let instantRanked=[...snaps].sort((a,b)=>b.score-a.score);
+    instantRanked.forEach((r,i)=>r.instantRank=i);
+    A.simData.push({
+      minute,
+      routes:snaps,
+      leader:instantRanked[0].id
+    });
+  }
+
+  finaliseStrategyFrames();
+}
+
+
+function routeSectorPoint(r,i){
+  const a=r.points[i],b=r.points[i+1];
+  return[(a[0]+b[0])/2,(a[1]+b[1])/2];
+}
+
+async function fetchStrategyPoint(lat,lon){
+  const u=new URL('https://api.open-meteo.com/v1/forecast');
+  u.searchParams.set('latitude',lat);
+  u.searchParams.set('longitude',lon);
+  u.searchParams.set('timezone','auto');
+  u.searchParams.set('forecast_days','2');
+  u.searchParams.set(
+    'hourly',
+    'temperature_2m,precipitation_probability,wind_speed_10m,cloud_cover,shortwave_radiation'
+  );
+
+  const r=await fetch(u.toString(),{cache:'no-store'});
+  if(!r.ok) throw Error(`route weather ${r.status}`);
+  return r.json();
+}
+
+function forecastValue(data,key,target){
+  const h=data.hourly||{};
+  const times=h.time||[];
+  const values=h[key]||[];
+
+  if(!times.length || !values.length) return 0;
+
+  const targetMs=target.getTime();
+  let upper=times.findIndex(t=>new Date(t).getTime()>=targetMs);
+
+  if(upper<=0) return Number(values[Math.max(0,upper)])||0;
+  if(upper===-1) return Number(values[values.length-1])||0;
+
+  const lower=upper-1;
+  const t0=new Date(times[lower]).getTime();
+  const t1=new Date(times[upper]).getTime();
+  const v0=Number(values[lower])||0;
+  const v1=Number(values[upper])||0;
+  const f=t1===t0?0:clamp((targetMs-t0)/(t1-t0),0,1);
+
+  return v0+(v1-v0)*f;
+}
+
+function scoreWeatherSnapshot(r,sectors){
+  let snap={...r,sectors};
+  let avg=k=>snap.sectors.reduce((s,x)=>s+x[k],0)/snap.sectors.length;
+
+  snap.w={
+    solar:avg('solar'),
+    rain:avg('rain'),
+    wind:avg('wind'),
+    cloud:avg('cloud'),
+    temp:avg('temp')
+  };
+
+  snap.energyStart=82;
+  snap.avgSpeed=clamp(78-snap.w.rain*.10-Math.max(0,snap.w.wind-25)*.11,52,88);
+  snap.eta=Math.round(snap.distance/snap.avgSpeed*60);
+  snap.drive=snap.distance*(.115+Math.max(0,snap.w.wind-20)*.0012+snap.w.rain*.00035);
+  snap.solarGain=snap.distance*(snap.w.solar/1000)*.026*(1-snap.w.cloud/220);
+  snap.weatherLoss=snap.distance*((snap.w.rain/100)*.012+Math.max(0,snap.w.wind-35)*.0015);
+  snap.net=snap.drive+snap.weatherLoss-snap.solarGain;
+  snap.finish=clamp(snap.energyStart-snap.net*2.15,5,100);
+
+  const score=
+    clamp(snap.w.solar/10,0,100)
+    -snap.w.rain*.28
+    -Math.max(0,snap.w.wind-12)*.28
+    -snap.w.cloud*.10
+    -Math.max(0,snap.distance-70)*.10
+    -Math.max(0,snap.eta-60)*.08
+    +(snap.finish-55)*.30;
+
+  snap.score=Math.round(clamp(score,0,100));
+  snap.mode=
+    snap.w.rain>=68||snap.w.wind>=52||snap.score<40
+      ?'CONSERVE'
+      :snap.score>=72&&snap.w.rain<28&&snap.w.wind<34
+        ?'ATTACK'
+        :'BALANCED';
+
+  return snap;
+}
+
+async function getHybridAdjustment(){
+  const neutral={windDelta:0,rainDelta:0,solarFactor:1,tempDelta:0,applied:false};
+
+  if(!A.camp.online || !A.camp.latest) return neutral;
+
+  const c=A.camp.latest;
+
+  // Only allow Hybrid calibration from genuinely fresh physical data.
+  // Old MongoDB test readings must not influence the live route strategy.
+  const campusTime=new Date(c.timestamp||c.createdAt||0).getTime();
+  const campusAgeSeconds=campusTime ? (Date.now()-campusTime)/1000 : Infinity;
+  if(campusAgeSeconds>90) return neutral;
+
+  if(c.latitude==null || c.longitude==null) return neutral;
+
+  try{
+    const api=await fetchStrategyPoint(c.latitude,c.longitude);
+    const now=new Date();
+
+    const apiWind=forecastValue(api,'wind_speed_10m',now);
+    const apiSolar=forecastValue(api,'shortwave_radiation',now);
+    const apiTemp=forecastValue(api,'temperature_2m',now);
+
+    const adj={...neutral};
+
+    if(c.windSpeed!=null)
+      adj.windDelta=clamp(Number(c.windSpeed)-apiWind,-8,8);
+
+    const measuredSolar=c.solarIrradiance??c.irradiance;
+    if(measuredSolar!=null && apiSolar>50)
+      adj.solarFactor=clamp(Number(measuredSolar)/apiSolar,.80,1.20);
+
+    if(c.temperature!=null)
+      adj.tempDelta=clamp(Number(c.temperature)-apiTemp,-3,3);
+
+    if(c.rainDetected===true)
+      adj.rainDelta=12;
+    else if(c.rainDetected===false)
+      adj.rainDelta=-3;
+
+    adj.applied=true;
+    return adj;
+  }catch(e){
+    console.warn('Hybrid campus calibration unavailable:',e);
+    return neutral;
+  }
+}
+
+async function generateLiveStrategy(mode){
+  if(A.strategyBusy) return;
+
+  A.strategyBusy=true;
+  A.hybridApplied=false;
+  $('strategySourceStatus').textContent=
+    mode==='hybrid'?'LOADING HYBRID…':'LOADING LIVE FORECAST…';
+  $('strategySourceStatus').className='pill yellow';
+  $('simulate').disabled=true;
+
+  try{
+    const datasets={};
+
+    await Promise.all(routes.flatMap(r=>
+      [0,1,2,3].map(async i=>{
+        const p=routeSectorPoint(r,i);
+        const d=await fetchStrategyPoint(p[0],p[1]);
+        if(!datasets[r.id]) datasets[r.id]=[];
+        datasets[r.id][i]=d;
+      })
+    ));
+
+    let adjustment={windDelta:0,rainDelta:0,solarFactor:1,tempDelta:0,applied:false};
+
+    if(mode==='hybrid'){
+      adjustment=await getHybridAdjustment();
+      A.hybridApplied=adjustment.applied;
+    }
+
+    A.simData=[];
+    const baseTime=new Date();
+
+    for(let minute=0;minute<=120;minute+=5){
+      const target=new Date(baseTime.getTime()+minute*60000);
+
+      const snaps=routes.map(r=>{
+        const sectors=[0,1,2,3].map(i=>{
+          const d=datasets[r.id][i];
+          const solar=forecastValue(d,'shortwave_radiation',target);
+          const rain=forecastValue(d,'precipitation_probability',target);
+          const wind=forecastValue(d,'wind_speed_10m',target);
+          const cloud=forecastValue(d,'cloud_cover',target);
+          const temp=forecastValue(d,'temperature_2m',target);
+
+          return{
+            name:`Sector ${i+1}`,
+            kmStart:Math.round((i/4)*r.distance),
+            kmEnd:Math.round(((i+1)/4)*r.distance),
+            solar:Math.round(clamp(solar*adjustment.solarFactor,0,1200)),
+            rain:Math.round(clamp(rain+adjustment.rainDelta,0,100)),
+            wind:Math.round(clamp(wind+adjustment.windDelta,0,100)),
+            cloud:Math.round(clamp(cloud,0,100)),
+            temp:Math.round((temp+adjustment.tempDelta)*10)/10
+          };
+        });
+
+        return scoreWeatherSnapshot(r,sectors);
+      });
+
+      const instantRanked=[...snaps].sort((a,b)=>b.score-a.score);
+      instantRanked.forEach((r,i)=>r.instantRank=i);
+
+      A.simData.push({
+        minute,
+        routes:snaps,
+        leader:instantRanked[0].id
+      });
+    }
+
+    finaliseStrategyFrames();
+
+    dot('wDot','on');
+    $('wTxt').textContent='ONLINE';
+
+    if(mode==='hybrid'){
+      if(A.hybridApplied){
+        $('strategySourceStatus').textContent='HYBRID LIVE';
+        $('strategySourceStatus').className='pill green';
+      }else{
+        $('strategySourceStatus').textContent='HYBRID — API FALLBACK';
+        $('strategySourceStatus').className='pill yellow';
+      }
+    }else{
+      $('strategySourceStatus').textContent='LIVE FORECAST';
+      $('strategySourceStatus').className='pill green';
+    }
+  }catch(e){
+    console.error('Live route strategy failed:',e);
+    $('strategySourceStatus').textContent='LIVE STRATEGY ERROR';
+    $('strategySourceStatus').className='pill red';
+    dot('wDot','off');
+    $('wTxt').textContent='ERROR';
+  }finally{
+    A.strategyBusy=false;
+    $('simulate').disabled=false;
+  }
+}
+
+function updateStrategySourceUI(){
+  A.strategySource=$('strategySource').value;
+  const sim=A.strategySource==='simulation';
+
+  $('scenario').disabled=!sim;
+
+  if(sim){
+    $('simulate').textContent='Generate New 120-Min Scenario';
+    $('strategySourceStatus').textContent='SIMULATION MODE';
+    $('strategySourceStatus').className='pill cyan';
+    if($('strategyWeatherStatus')){
+      $('strategyWeatherStatus').textContent='SIM WEATHER';
+      $('strategyWeatherStatus').className='pill cyan';
+    }
+    $('sDot').className='dot on';
+    $('sTxt').textContent='ACTIVE';
+    if(!A.simTimer) $('autoSim').textContent='Start Live Simulation';
+  }else if(A.strategySource==='live'){
+    $('simulate').textContent='Refresh Live 120-Min Forecast';
+    $('strategySourceStatus').textContent='LIVE WEATHER API';
+    $('strategySourceStatus').className='pill green';
+    if($('strategyWeatherStatus')){
+      $('strategyWeatherStatus').textContent='LIVE FORECAST';
+      $('strategyWeatherStatus').className='pill green';
+    }
+    $('sDot').className='dot warn';
+    $('sTxt').textContent='STANDBY';
+    if(!A.simTimer) $('autoSim').textContent='Play Forecast Timeline';
+  }else{
+    $('simulate').textContent='Refresh Hybrid 120-Min Forecast';
+    $('strategySourceStatus').textContent='API + CAMPUS';
+    $('strategySourceStatus').className='pill yellow';
+    if($('strategyWeatherStatus')){
+      $('strategyWeatherStatus').textContent='HYBRID WEATHER';
+      $('strategyWeatherStatus').className='pill yellow';
+    }
+    $('sDot').className='dot warn';
+    $('sTxt').textContent='STANDBY';
+    if(!A.simTimer) $('autoSim').textContent='Play Forecast Timeline';
+  }
+}
+
+async function runStrategySource(){
+  updateStrategySourceUI();
+
+  if(A.strategySource==='simulation')
+    generateSimulation();
+  else
+    await generateLiveStrategy(A.strategySource);
+}
+
+
+
+function clearStrategyWeather(){
+  if(A.strategyWeatherOverlay){
+    try{A.map.removeLayer(A.strategyWeatherOverlay)}catch(e){}
+    A.strategyWeatherOverlay=null;
+  }
+  if(A.strategyRadarLayer){
+    try{A.map.removeLayer(A.strategyRadarLayer)}catch(e){}
+    A.strategyRadarLayer=null;
+  }
+  A.weatherCells=[];
+}
+
+function sectorMapPoint(route,sectorIndex){
+  const a=route.points[Math.min(sectorIndex,route.points.length-2)];
+  const b=route.points[Math.min(sectorIndex+1,route.points.length-1)];
+  return[(a[0]+b[0])/2,(a[1]+b[1])/2];
+}
+
+function currentStrategyFrame(){
+  if(!A.simData.length) return null;
+  const idx=Math.max(0,Math.min(A.simData.length-1,Math.round(A.simMinute/5)));
+  return A.simData[idx];
+}
+
+function strategyWeatherBounds(){
+  return [[-26.95,26.90],[-25.40,28.65]];
+}
+
+function makeStrategyWeatherRaster(frame,layerMode){
+  const canvas=document.createElement('canvas');
+  canvas.width=1200;
+  canvas.height=900;
+  const ctx=canvas.getContext('2d');
+  const bounds=strategyWeatherBounds();
+  const south=bounds[0][0],west=bounds[0][1],north=bounds[1][0],east=bounds[1][1];
+
+  const toXY=(lat,lon)=>[
+    ((lon-west)/(east-west))*canvas.width,
+    ((north-lat)/(north-south))*canvas.height
+  ];
+
+  // Deterministic pseudo-random helper so the weather field is stable at each time step.
+  const noise=n=>{
+    const x=Math.sin(n*12.9898+78.233)*43758.5453;
+    return x-Math.floor(x);
+  };
+
+  const drawSoftBlob=(x,y,rx,ry,rotation,stops)=>{
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(rotation);
+    ctx.scale(rx,ry);
+    const g=ctx.createRadialGradient(0,0,0,0,0,1);
+    stops.forEach(s=>g.addColorStop(s[0],s[1]));
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(0,0,1,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  const simulated=A.strategySource==='simulation';
+  const t=A.simMinute/5;
+
+  frame.routes.forEach((routeSnapshot,routeIndex)=>{
+    const route=routes.find(r=>r.id===routeSnapshot.id);
+    if(!route) return;
+
+    routeSnapshot.sectors.forEach((s,sectorIndex)=>{
+      let [lat,lon]=sectorMapPoint(route,sectorIndex);
+
+      // Simulated systems drift across the route network over the 120-minute window.
+      if(simulated){
+        const drift=(A.simMinute/120);
+        lat += Math.sin(routeIndex*1.8+sectorIndex*.9+t*.10)*0.045 + drift*0.035;
+        lon += Math.cos(routeIndex*.7+sectorIndex*1.15+t*.08)*0.060 + drift*0.10;
+      }
+
+      const [cx,cy]=toXY(lat,lon);
+      const seed=routeIndex*101+sectorIndex*37+t*7;
+
+      // Clouds: many overlapping low-opacity soft blobs form one irregular cloud mass.
+      if((layerMode==='all'||layerMode==='cloud') && s.cloud>=10){
+        const cloudStrength=clamp(s.cloud/100,0,1);
+        const blobs=5+Math.round(cloudStrength*5);
+
+        for(let j=0;j<blobs;j++){
+          const ang=noise(seed+j*3.2)*Math.PI*2;
+          const spread=18+noise(seed+j*5.1)*75;
+          const x=cx+Math.cos(ang)*spread;
+          const y=cy+Math.sin(ang)*spread*.65;
+          const rx=55+noise(seed+j*6.3)*105+cloudStrength*45;
+          const ry=28+noise(seed+j*7.9)*60+cloudStrength*30;
+          const rot=(noise(seed+j*11.7)-.5)*1.2;
+
+          drawSoftBlob(
+            x,y,rx,ry,rot,
+            [
+              [0,`rgba(235,241,246,${0.035+cloudStrength*.10})`],
+              [.45,`rgba(213,224,232,${0.025+cloudStrength*.075})`],
+              [1,'rgba(205,219,230,0)']
+            ]
+          );
+        }
+      }
+
+      // Rain: layered radar echoes with soft green/yellow/red cores instead of hard circles.
+      if((layerMode==='all'||layerMode==='rain') && s.rain>=7){
+        const rainStrength=clamp(s.rain/100,0,1);
+        const blobs=4+Math.round(rainStrength*6);
+
+        for(let j=0;j<blobs;j++){
+          const ang=noise(seed+200+j*4.7)*Math.PI*2;
+          const spread=12+noise(seed+220+j*6.5)*60;
+          const x=cx+Math.cos(ang)*spread;
+          const y=cy+Math.sin(ang)*spread*.70;
+          const rx=34+noise(seed+240+j*8.1)*75+rainStrength*35;
+          const ry=19+noise(seed+260+j*9.2)*45+rainStrength*24;
+          const rot=(noise(seed+280+j*10.6)-.5)*1.4;
+
+          let stops;
+          if(s.rain>=70){
+            stops=[
+              [0,`rgba(239,67,67,${0.30+rainStrength*.24})`],
+              [.28,`rgba(255,203,71,${0.27+rainStrength*.20})`],
+              [.58,`rgba(71,216,121,${0.20+rainStrength*.16})`],
+              [1,'rgba(58,144,255,0)']
+            ];
+          }else if(s.rain>=35){
+            stops=[
+              [0,`rgba(255,206,67,${0.22+rainStrength*.18})`],
+              [.38,`rgba(75,221,127,${0.20+rainStrength*.17})`],
+              [.72,`rgba(54,157,255,${0.14+rainStrength*.12})`],
+              [1,'rgba(54,157,255,0)']
+            ];
+          }else{
+            stops=[
+              [0,`rgba(65,205,123,${0.14+rainStrength*.14})`],
+              [.50,`rgba(48,159,255,${0.11+rainStrength*.12})`],
+              [1,'rgba(48,159,255,0)']
+            ];
+          }
+
+          drawSoftBlob(x,y,rx,ry,rot,stops);
+        }
+      }
+    });
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+async function ensureStrategyLiveRadar(layerMode){
+  if(!(layerMode==='all'||layerMode==='rain')) return false;
+
+  try{
+    // Reuse the exact RainViewer source used on the Weather screen.
+    if(!A.host || !A.frames.length){
+      const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'});
+      const d=await r.json();
+      A.host=d.host;
+      A.frames=(d.radar?.past||[]).slice(-12);
+    }
+
+    if(!A.frames.length) return false;
+
+    const f=A.frames[A.frames.length-1];
+    A.strategyRadarLayer=L.tileLayer(
+      `${A.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`,
+      {
+        opacity:.64,
+        zIndex:360,
+        maxZoom:7,
+        pane:'strategyWeatherPane'
+      }
+    ).addTo(A.map);
+
+    return true;
+  }catch(e){
+    console.warn('Strategy RainViewer unavailable:',e);
+    return false;
+  }
+}
+
+async function renderStrategyWeather(frame){
+  clearStrategyWeather();
+  if(!frame || !A.map) return;
+
+  const layerMode=$('strategyWeatherLayer')?.value||'all';
+
+  if(layerMode==='off'){
+    $('strategyWeatherStatus').textContent='WEATHER OFF';
+    $('strategyWeatherStatus').className='pill';
+    return;
+  }
+
+  const simulated=A.strategySource==='simulation';
+
+  if(simulated){
+    // Controlled simulation uses a generated raster field driven by the same sector values
+    // used by the strategy engine. It moves with the T+0 → T+120 timeline.
+    const url=makeStrategyWeatherRaster(frame,layerMode);
+    A.strategyWeatherOverlay=L.imageOverlay(
+      url,
+      strategyWeatherBounds(),
+      {
+        opacity:.95,
+        interactive:false,
+        pane:'strategyWeatherPane'
+      }
+    ).addTo(A.map);
+
+    $('strategyWeatherStatus').textContent='SIM RADAR';
+    $('strategyWeatherStatus').className='pill cyan';
+    return;
+  }
+
+  // Live/Hybrid: show real RainViewer radar just like the Weather page.
+  // Cloud cover remains a soft forecast field because Open-Meteo supplies cloud %
+  // rather than radar tiles.
+  let radarOK=false;
+  if(layerMode==='all'||layerMode==='rain'){
+    radarOK=await ensureStrategyLiveRadar(layerMode);
+  }
+
+  if(layerMode==='all'||layerMode==='cloud'){
+    const url=makeStrategyWeatherRaster(frame,'cloud');
+    A.strategyWeatherOverlay=L.imageOverlay(
+      url,
+      strategyWeatherBounds(),
+      {
+        opacity:.82,
+        interactive:false,
+        pane:'strategyWeatherPane'
+      }
+    ).addTo(A.map);
+  }
+
+  if(A.strategySource==='hybrid'){
+    $('strategyWeatherStatus').textContent=
+      radarOK
+        ? (A.hybridApplied?'LIVE RADAR + HYBRID':'LIVE RADAR + API')
+        : (A.hybridApplied?'HYBRID CLOUD':'API CLOUD');
+    $('strategyWeatherStatus').className='pill '+(radarOK?'green':'yellow');
+  }else{
+    $('strategyWeatherStatus').textContent=
+      radarOK?'LIVE RADAR':'FORECAST CLOUD';
+    $('strategyWeatherStatus').className='pill '+(radarOK?'green':'yellow');
+  }
+}
+
+function showMinute(){
+  if(!A.simData.length) return;
+
+  const idx=Math.max(0,Math.min(A.simData.length-1,Math.round(A.simMinute/5)));
+  const frame=A.simData[idx];
+
+  const display=A.overallRanked.map(overall=>{
+    const current=frame.routes.find(x=>x.id===overall.id);
+    return{
+      ...current,
+      rank:overall.rank,
+      conf:overall.conf,
+      wins:overall.wins,
+      winRate:overall.winRate,
+      currentScore:current.score,
+      currentRank:current.instantRank,
+      overallScore:overall.overallScore,
+      overallFinish:overall.overallFinish,
+      overallEta:overall.overallEta,
+      overallSolarGain:overall.overallSolarGain,
+      overallDrive:overall.overallDrive,
+      overallNet:overall.overallNet,
+      overallW:overall.overallW,
+
+      // Existing rendering uses these fields. Point them at 120-minute aggregate values.
+      score:overall.overallScore,
+      finish:overall.overallFinish,
+      eta:overall.overallEta,
+      solarGain:overall.overallSolarGain,
+      drive:overall.overallDrive
+    };
+  });
+
+  A.best=display.find(r=>r.rank===0);
+  A.instantBest=frame.routes.find(r=>r.instantRank===0);
+
+  $('overallLeader').textContent=`${A.best.name} (${A.best.startName})`;
+  $('instantLeader').textContent=`${A.instantBest.name} (${A.instantBest.startName})`;
+
+  renderStrategy(display);
+  renderStrategyWeather(frame);
+  updateDriver();
+  updateTelemetry();
+}
+
+function simulate(){
+  generateSimulation();
+}
+function color(rank){return rank===0?'#48e59a':rank===1?'#ffd15c':'#ff6262'}
+function renderStrategy(ranked){
+  let b=ranked[0];
+
+  $('bestRoute').textContent=`${b.name} — ${b.startName}`;
+  $('bestScore').textContent=b.overallScore;
+  $('confidence').textContent=b.conf;
+  $('batteryFinish').textContent=r1(b.overallFinish);
+  $('mode').textContent=b.mode;
+
+  ranked.forEach(r=>{
+    A.routeLayers[r.id].setStyle({
+      color:color(r.rank),
+      weight:r.rank===0?10:7
+    });
+
+    A.routeLayers[r.id].bindPopup(`
+      <b>${r.name}: ${r.startName} → Johannesburg</b><br>
+      120-min average score: <b>${r.overallScore}/100</b><br>
+      Current T+${A.simMinute} score: ${r.currentScore}/100<br>
+      Best route in ${r.wins}/${A.simData.length} intervals (${r0(r.winRate)}%)<br>
+      Avg ETA: ${r.overallEta} min<br>
+      Avg solar gain: ${r1(r.overallSolarGain)} kWh<br>
+      Avg battery at finish: ${r1(r.overallFinish)}%<br>
+      Current strategy: <b>${r.mode}</b>
+    `);
+  });
+
+  $('routeList').innerHTML='';
+  ranked.forEach(r=>{
+    let d=document.createElement('div');
+    d.className='route';
+    d.style.borderLeftColor=color(r.rank);
+    d.innerHTML=`
+      <div class="rTop">
+        <div>
+          <div class="rName">${r.name} — ${r.startName}</div>
+          <div style="margin-top:5px">
+            <span class="pill ${r.rank===0?'green':r.rank===1?'yellow':'red'}">
+              ${r.rank===0?'120-MIN WINNER':r.rank===1?'2ND OVER 120 MIN':'3RD OVER 120 MIN'}
+            </span>
+          </div>
+        </div>
+        <div class="score">${r.overallScore}</div>
+      </div>
+
+      <div class="miniGrid">
+        <div class="mini"><div class="miniK">Avg ETA</div><div class="miniV">${r.overallEta} min</div></div>
+        <div class="mini"><div class="miniK">Avg Battery</div><div class="miniV">${r1(r.overallFinish)}%</div></div>
+        <div class="mini"><div class="miniK">5-min Wins</div><div class="miniV">${r.wins}/${A.simData.length}</div></div>
+        <div class="mini"><div class="miniK">Current Score</div><div class="miniV">${r.currentScore}</div></div>
+      </div>`;
+
+    d.onclick=()=>{
+      A.map.fitBounds(A.routeLayers[r.id].getBounds(),{padding:[35,35]});
+      A.routeLayers[r.id].openPopup();
+    };
+    $('routeList').appendChild(d);
+  });
+
+  let s=ranked[1];
+  const scoreGap=b.overallScore-s.overallScore;
+  const batt=b.overallFinish-s.overallFinish;
+  const currentLeader=A.instantBest;
+  const currentNote=currentLeader && currentLeader.id!==b.id
+    ? `At <b>T + ${A.simMinute} min</b>, ${currentLeader.name} is strongest for that single 5-minute interval, but that does not change the full-horizon recommendation.`
+    : `At <b>T + ${A.simMinute} min</b>, ${b.name} is also the strongest route for the current interval.`;
+
+  const sourceLabel=
+    A.strategySource==='simulation'
+      ?'controlled simulation data'
+      :A.strategySource==='live'
+        ?'live Open-Meteo route forecast data'
+        :(A.hybridApplied
+          ?'live Open-Meteo route forecasts calibrated with campus sensor data'
+          :'live Open-Meteo route forecasts (campus station unavailable, API fallback)');
+
+  $('explain').innerHTML=`
+    The strategy engine evaluates <b>${A.simData.length} samples</b> from
+    <b>T + 0 to T + 120 minutes</b> in 5-minute steps using <b>${sourceLabel}</b>.
+    <b style="color:var(--c)">${b.name}</b> is the overall recommendation because it has the
+    highest 120-minute average score of <b>${b.overallScore}/100</b>,
+    finishes first in <b>${b.wins}/${A.simData.length}</b> intervals
+    (<b>${r0(b.winRate)}%</b>), and is projected to arrive with an average
+    <b>${r1(b.overallFinish)}% battery</b>.
+    It leads ${s.name} by <b>${scoreGap} score points</b> and
+    ${batt>=0?`about <b>${r1(batt)} battery percentage points</b>`:`has a slightly lower battery projection`}.
+    ${currentNote}
+  `;
+
+  $('sectors').innerHTML='';
+  b.sectors.forEach(x=>{
+    let cls=x.rain>=60||x.wind>=48?'red':x.rain>=35||x.wind>=35||x.cloud>=70?'yellow':'green';
+    $('sectors').insertAdjacentHTML('beforeend',`
+      <div class="sector">
+        <b>${x.name}</b>
+        <div style="margin:6px 0"><span class="pill ${cls}">${x.kmStart}-${x.kmEnd} km</span></div>
+        <div class="muted">
+          Current T+${A.simMinute}<br>
+          Solar ${x.solar} W/m²<br>
+          Rain ${x.rain}%<br>
+          Wind ${x.wind} km/h<br>
+          Cloud ${x.cloud}%
+        </div>
+      </div>`);
+  });
+
+  A.markers.forEach(m=>A.map.removeLayer(m));
+  A.markers=[];
+  b.sectors.forEach((x,i)=>{
+    let p=b.points[Math.min(i+1,b.points.length-1)];
+    let c=x.rain>=60||x.wind>=48?'#ff6262':x.rain>=35||x.wind>=35||x.cloud>=70?'#ffd15c':'#48e59a';
+    A.markers.push(
+      L.circleMarker(p,{
+        radius:9,color:c,fillColor:c,fillOpacity:.35,weight:3
+      }).addTo(A.map).bindPopup(`
+        <b>${x.name} at T+${A.simMinute}</b><br>
+        Rain ${x.rain}%<br>
+        Wind ${x.wind} km/h<br>
+        Solar ${x.solar} W/m²
+      `)
+    );
+  });
+
+  renderCharts(ranked);
+}
+function chartDestroy(c){if(c)c.destroy()}
+function renderCharts(ranked){if(typeof Chart==='undefined')return;chartDestroy(A.routeChart);A.routeChart=new Chart($('routeChart'),{type:'bar',data:{labels:ranked.map(r=>r.name),datasets:[{label:'120-min avg score',data:ranked.map(r=>r.score)},{label:'Avg battery at JHB %',data:ranked.map(r=>+r.finish.toFixed(1))}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b8c7d2'}}},scales:{x:{ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.05)'}},y:{beginAtZero:true,max:100,ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.05)'}}}}});let b=ranked[0],labs=['Start','25%','50%','75%','Finish'],bat=labs.map((_,i)=>+(b.energyStart-(b.energyStart-b.finish)*(i/4)).toFixed(1));chartDestroy(A.battChart);A.battChart=new Chart($('batteryChart'),{type:'line',data:{labels:labs,datasets:[{label:'Projected battery %',data:bat,tension:.35}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b8c7d2'}}},scales:{x:{ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.05)'}},y:{min:0,max:100,ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.05)'}}}}});chartDestroy(A.riskChart);A.riskChart=new Chart($('riskChart'),{type:'line',data:{labels:b.sectors.map(x=>x.name),datasets:[{label:'Rain %',data:b.sectors.map(x=>x.rain),tension:.3},{label:'Cloud %',data:b.sectors.map(x=>x.cloud),tension:.3},{label:'Wind km/h',data:b.sectors.map(x=>x.wind),tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b8c7d2'}}},scales:{x:{ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.05)'}},y:{beginAtZero:true,ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.05)'}}}}})}
+function updateTelemetry(){if(!A.best)return;let p=clamp(A.simMinute/120,0,1),b=A.best,speed=clamp(b.avgSpeed+rand(-4,5)-(b.mode==='CONSERVE'?7:b.mode==='ATTACK'?4:0),45,95),battery=clamp(b.energyStart-(b.energyStart-b.finish)*p+rand(-.5,.5),0,100),solar=clamp(b.w.solar*1.15+rand(-45,45),0,1250),power=clamp(5.2+speed*.035+b.w.wind*.015+rand(-.2,.3),3,11),used=clamp(b.net*p,0,30),remain=Math.max(0,b.distance*(1-p));$('tSpeed').textContent=r0(speed);$('tBatt').textContent=r1(battery);$('tSolar').textContent=r0(solar);$('tPower').textContent=r1(power);$('tUsed').textContent=r1(used);$('tRemain').textContent=r1(remain);$('dBatt').textContent=r1(battery);$('dSpeed').textContent=r0(speed);$('dRemain').textContent=r1(remain)}
+function updateDriver(){let b=A.best;if(!b)return;$('dRoute').textContent=`${b.name} — ${b.startName} → Johannesburg`;$('dMode').textContent=b.mode;$('dMode').className='pill '+(b.mode==='ATTACK'?'green':b.mode==='BALANCED'?'yellow':'red');$('dRain').textContent=r0(b.w.rain);$('dWind').textContent=r0(b.w.wind);$('dSolar').textContent=b.w.solar>=750?'HIGH':b.w.solar>=500?'MODERATE':'LOW';$('dConf').textContent=b.conf;let risk=b.sectors.find(x=>x.rain>=55||x.wind>=45);$('dMessage').textContent=risk?(risk.rain>=55?`Rain risk increases in ${risk.name} (${risk.kmStart}-${risk.kmEnd} km). Maintain ${b.mode.toLowerCase()} strategy and prepare for reduced solar input.`:`Strong wind expected in ${risk.name} (${risk.kmStart}-${risk.kmEnd} km). Hold stable speed and protect energy reserve.`):b.w.solar>=700?'Strong solar conditions ahead. Follow the recommended route and maintain the current strategy mode.':'Conditions are stable. Continue on the recommended route and monitor strategy updates.'}
+$('strategyWeatherLayer').onchange=()=>renderStrategyWeather(currentStrategyFrame());$('strategySource').onchange=async()=>{if(A.simTimer){clearInterval(A.simTimer);A.simTimer=null}updateStrategySourceUI();await runStrategySource()};$('simulate').onclick=runStrategySource;$('scenario').onchange=()=>{if(A.strategySource==='simulation')generateSimulation()};$('timeline').oninput=e=>{A.simMinute=+e.target.value;$('timeText').textContent=`T + ${A.simMinute} min`;showMinute()};$('autoSim').onclick=()=>{if(A.simTimer){clearInterval(A.simTimer);A.simTimer=null;updateStrategySourceUI()}else{$('autoSim').textContent='Stop Timeline';A.simTimer=setInterval(()=>{A.simMinute=(A.simMinute+5)%125;$('timeline').value=A.simMinute;$('timeText').textContent=`T + ${A.simMinute} min`;showMinute()},2500)}};
+async function fetchWx(lat,lon){let u=new URL('https://api.open-meteo.com/v1/forecast');u.searchParams.set('latitude',lat);u.searchParams.set('longitude',lon);u.searchParams.set('timezone','auto');u.searchParams.set('forecast_days','2');u.searchParams.set('current','temperature_2m,relative_humidity_2m,precipitation,rain,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,shortwave_radiation');u.searchParams.set('hourly','precipitation_probability,precipitation,wind_speed_10m,wind_gusts_10m,cloud_cover');let r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('weather');return r.json()}
+async function refreshWx(){
+  A.wx.lat=+$('lat').value||A.wx.lat;
+  A.wx.lon=+$('lon').value||A.wx.lon;
+
+  let d;
+
+  // Only the Open-Meteo request controls the WEATHER API status.
+  try{
+    d=await fetchWx(A.wx.lat,A.wx.lon);
+    A.wx.last=d;
+    dot('wDot','on');
+    $('wTxt').textContent='ONLINE';
+  }catch(e){
+    console.error('Open-Meteo request failed:',e);
+    dot('wDot','off');
+    $('wTxt').textContent='ERROR';
+    return;
+  }
+
+  // Render the weather data separately so a visual/map problem cannot
+  // incorrectly mark Open-Meteo as offline.
+  try{
+    let c=d.current||{},h=d.hourly||{};
+
+    $('wxSolar').textContent=r0(c.shortwave_radiation);
+    $('wxTemp').textContent=r1(c.temperature_2m);
+    $('wxPrecip').textContent=r1(c.precipitation);
+    $('wxWind').textContent=r0(c.wind_speed_10m);
+    $('wxDir').textContent=`${r0(c.wind_direction_10m)}° ${windLabel(c.wind_direction_10m)}`;
+    $('wxCloud').textContent=r0(c.cloud_cover);
+    $('wxPressure').textContent=r1(c.surface_pressure);
+
+    let now=new Date(),start=0;
+    for(let i=0;i<(h.time||[]).length;i++){
+      if(new Date(h.time[i])>=now){start=i;break}
+    }
+
+    $('wxRain').textContent=r0((h.precipitation_probability||[])[start]);
+    $('forecast').innerHTML='';
+
+    for(let x=0;x<6;x++){
+      let i=start+x;
+      if(!h.time?.[i])break;
+      $('forecast').insertAdjacentHTML(
+        'beforeend',
+        `<tr>
+          <td>${new Date(h.time[i]).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+          <td>${r0(h.precipitation_probability?.[i])}%</td>
+          <td>${r0(h.wind_speed_10m?.[i])} km/h</td>
+          <td>${r0(h.cloud_cover?.[i])}%</td>
+          <td>${r1(h.precipitation?.[i])} mm</td>
+        </tr>`
+      );
+    }
+
+    validate();
+  }catch(e){
+    console.error('Weather data render error:',e);
+  }
+
+  // Radar/map and Windy are independent visual systems.
+  try{
+    if(A.radar){
+      A.radar.invalidateSize(true);
+      A.radar.setView([A.wx.lat,A.wx.lon],7);
+    }
+  }catch(e){
+    console.error('Radar map update error:',e);
+    if($('radarStatus')) $('radarStatus').textContent='Radar map issue — Weather API still online';
+  }
+
+  try{
+    updateWindy();
+  }catch(e){
+    console.error('Windy update error:',e);
+  }
+}
+$('useCoords').onclick=refreshWx;$('refreshWx').onclick=refreshWx;$('gps').onclick=()=>navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{$('lat').value=p.coords.latitude.toFixed(5);$('lon').value=p.coords.longitude.toFixed(5);refreshWx()});
+function initRadar(){A.radar=L.map('radarMap').setView([A.wx.lat,A.wx.lon],7);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(A.radar)}
+async function reloadRadar(){try{stopRadar();$('radarStatus').textContent='Loading…';let r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}),d=await r.json();A.host=d.host;A.frames=(d.radar?.past||[]).slice(-12);if(A.frames.length)setFrame(A.frames.length-1)}catch(e){$('radarStatus').textContent='Radar unavailable'}}function setFrame(i){if(!A.frames.length)return;A.ri=(i+A.frames.length)%A.frames.length;let f=A.frames[A.ri];if(A.radarLayer)A.radar.removeLayer(A.radarLayer);A.radarLayer=L.tileLayer(`${A.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`,{opacity:.72,zIndex:1000,maxZoom:7}).addTo(A.radar);$('radarStatus').textContent=new Date(f.time*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}function stopRadar(){if(A.rt)clearInterval(A.rt);A.rt=null}$('playRadar').onclick=()=>{if(!A.frames.length)return;stopRadar();A.rt=setInterval(()=>setFrame(A.ri+1),700)};$('pauseRadar').onclick=stopRadar;$('reloadRadar').onclick=reloadRadar;
+function updateWindy(){$('windyFrame').src=`https://embed.windy.com/embed2.html?lat=${A.wx.lat}&lon=${A.wx.lon}&detailLat=${A.wx.lat}&detailLon=${A.wx.lon}&width=650&height=450&zoom=7&level=surface&overlay=${$('windyMode').value}&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1`}$('windyMode').onchange=updateWindy;$('radarTab').onclick=()=>{$('radarTab').classList.add('active');$('windyTab').classList.remove('active');$('radarPanel').classList.add('active');$('windyPanel').classList.remove('active');setTimeout(()=>A.radar.invalidateSize(),100)};$('windyTab').onclick=()=>{$('windyTab').classList.add('active');$('radarTab').classList.remove('active');$('windyPanel').classList.add('active');$('radarPanel').classList.remove('active');updateWindy()};
+function endpoint(){A.backend=($('backend').value||A.backend).trim().replace(/\/+$/,'');$('latestEndpoint').textContent=A.backend+'/api/readings/latest';$('historyEndpoint').textContent=A.backend+'/api/readings/history'}
+$('saveBackend').onclick=()=>{endpoint();localStorage.setItem('iwos.backend',A.backend);refreshCampus()};$('refreshCampus').onclick=refreshCampus;
+async function refreshCampus(){endpoint();try{let [l,h]=await Promise.all([fetch(A.backend+'/api/readings/latest',{cache:'no-store'}),fetch(A.backend+'/api/readings/history',{cache:'no-store'})]);if(!l.ok)throw Error('campus');A.camp.latest=await l.json();A.camp.history=h.ok?await h.json():[];A.camp.online=true;renderCampus();dot('cDot','on');$('cTxt').textContent='ONLINE';$('campPill').textContent='ONLINE';$('campPill').className='pill green'}catch(e){A.camp.online=false;dot('cDot','off');$('cTxt').textContent='OFFLINE';$('campPill').textContent='OFFLINE';$('campPill').className='pill red';$('cConn').textContent='OFFLINE';$('cAge').textContent='No live data';validate()}}
+function renderCampus(){let d=A.camp.latest||{},light=d.solarIrradiance??d.irradiance??d.lux;$('cTemp').textContent=r1(d.temperature);$('cHum').textContent=r1(d.humidity);$('cPressure').textContent=r1(d.pressure);$('cLight').textContent=r0(light);$('cLightUnit').textContent=(d.solarIrradiance!=null||d.irradiance!=null)?'W/m²':'lux';$('cWind').textContent=r1(d.windSpeed);$('cDir').textContent=d.windDirection==null?'—':`${r0(d.windDirection)}° ${windLabel(d.windDirection)}`;$('cRain').textContent=d.rainDetected===true?'WET':d.rainDetected===false?'DRY':'—';$('cLoc').textContent=d.latitude!=null&&d.longitude!=null?`${Number(d.latitude).toFixed(5)}, ${Number(d.longitude).toFixed(5)}`:'—';$('cDevice').textContent=d.deviceId||'—';let ts=new Date(d.timestamp||d.createdAt||Date.now()),age=Math.max(0,(Date.now()-ts)/1000);$('cLast').textContent=ts.toLocaleString();$('cAge').textContent=age<60?`${Math.round(age)} sec`:age<3600?`${Math.round(age/60)} min`:`${(age/3600).toFixed(1)} hr`;$('cConn').textContent=age<90?'LIVE':'STALE';let fields=[d.temperature,d.humidity,d.pressure,light,d.windSpeed,d.windDirection,d.rainDetected,d.latitude,d.longitude,d.deviceId];$('complete').textContent=Math.round(fields.filter(v=>v!==null&&v!==undefined&&v!=='').length/fields.length*100)+'%';renderCampusCharts();validate()}
+function renderCampusCharts(){if(typeof Chart==='undefined')return;let hist=[...(Array.isArray(A.camp.history)?A.camp.history:[])].reverse().slice(-30),labs=hist.map(x=>new Date(x.timestamp||x.createdAt||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));chartDestroy(A.cTempChart);A.cTempChart=new Chart($('campTempChart'),{type:'line',data:{labels:labs,datasets:[{label:'Temperature °C',data:hist.map(x=>x.temperature),tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b8c7d2'}}},scales:{x:{ticks:{color:'#91a6b6',maxTicksLimit:7},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.04)'}}}}});chartDestroy(A.cWindChart);A.cWindChart=new Chart($('campWindChart'),{type:'line',data:{labels:labs,datasets:[{label:'Wind km/h',data:hist.map(x=>x.windSpeed),tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#b8c7d2'}}},scales:{x:{ticks:{color:'#91a6b6',maxTicksLimit:7},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#91a6b6'},grid:{color:'rgba(255,255,255,.04)'}}}}})}
+function validate(){let a=A.wx.last?.current?.temperature_2m,c=A.camp.latest?.temperature;$('cmpApi').textContent=a==null?'—':r1(a)+' °C';$('cmpCampus').textContent=c==null?'—':r1(c)+' °C';if(a!=null&&c!=null){let d=Number(c)-Number(a);$('cmpDiff').textContent=(d>=0?'+':'')+r1(d)+' °C';$('cmpStatus').textContent=Math.abs(d)<=2?'Close agreement':'Check calibration / location'}else{$('cmpDiff').textContent='—';$('cmpStatus').textContent='Waiting'}}
+function init(){let s=localStorage.getItem('iwos.backend');if(s&& !/localhost:5000|127\.0\.0\.1:5000/.test(s)){A.backend=s;$('backend').value=s}else{A.backend='https://iwos-backend.onrender.com';$('backend').value=A.backend;localStorage.setItem('iwos.backend',A.backend)}endpoint();$('lat').value=A.wx.lat;$('lon').value=A.wx.lon;initMap();initRadar();updateStrategySourceUI();generateSimulation();refreshWx();reloadRadar();updateWindy();refreshCampus();setInterval(updateTelemetry,1500);setInterval(refreshCampus,10000)}init();
+</script></body></html>
